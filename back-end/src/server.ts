@@ -1,7 +1,9 @@
 import express, { Request, Response } from 'express';
 import { Database } from 'sqlite';
-import { initializeDatabase, addUser, addPlaylist, getUserPlaylists,
-   deletePlaylist, getAllUsers, getAllPlaylists, checkUser } from './database';
+import {
+  initializeDatabase, addUser, addPlaylist, getUserPlaylists,
+  deletePlaylist, getAllUsers, getAllPlaylists, checkUser
+} from './database';
 import { UserNotFoundError, ExistsError } from './types/Errors';
 import axios from 'axios';
 import cors from 'cors';
@@ -35,7 +37,6 @@ initializeDatabase().then(database => {
 
 app.get('/userExists/:username', async (req: Request, res: Response) => {
   const { username } = req.params;
-  console.log(username);
   try {
     await checkUser(db, username);
     res.status(200).send({ message: 'User exists' });
@@ -95,6 +96,7 @@ app.get('/playlists', async (req: Request, res: Response) => {
 app.post('/user/:username/playlists', async (req, res) => {
   const { username } = req.params;
   const { fromUser } = req.body;
+  
   try {
     const playlists = await getUserPlaylists(db, username);
     const playlistArray = [];
@@ -118,14 +120,13 @@ app.post('/user/:username/playlists', async (req, res) => {
 
 
 app.post('/addPlaylist', async (req, res) => {
-  const { username, isPrivate, playlistname } = req.body;
+  const { username, isPrivate, playlistName } = req.body;
   const response = await axios.post('https://youtube.thorsteinsson.is/api/playlists', {
-    name: 'My playlist'
+    name: playlistName
   });
   const playlistId = response.data.id;
-  console.log(playlistId)
   try {
-    await addPlaylist(db, username, playlistId, isPrivate, playlistname);
+    await addPlaylist(db, username, playlistId, isPrivate, playlistName);
     res.send({ message: "Playlist added successfully." });
   } catch (error) {
     console.error("Failed to add playlist:", error);
@@ -141,7 +142,18 @@ app.post('/addPlaylist', async (req, res) => {
   }
 });
 
-
+export interface VideoFromSearch {
+  id: {
+    videoId: string;
+  };
+  title: string;
+  description: string;
+  snippet: {
+    thumbnails: {
+      url: string
+    }
+  }
+}
 
 app.delete('/playlist/:id', async (req, res) => {
   const { id } = req.params;
@@ -164,3 +176,5 @@ app.delete('/playlist/:id', async (req, res) => {
     }
   }
 });
+
+
