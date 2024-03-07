@@ -30,4 +30,4 @@ cd you-tube
 npm start
 ```
 
-Remember to use 2 terminals, one for back-end and one for front-end.
+Remember to use 2 terminals, one for back-end and one for front-end. Back-end should be already started when starting front-end.
