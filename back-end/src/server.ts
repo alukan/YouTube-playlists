@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { Database } from 'sqlite';
-import { initializeDatabase, addUser, addPlaylist, getUserPlaylists, deletePlaylist, getAllUsers, getAllPlaylists } from './database';
+import { initializeDatabase, addUser, addPlaylist, getUserPlaylists,
+   deletePlaylist, getAllUsers, getAllPlaylists, checkUser } from './database';
 import { UserNotFoundError, ExistsError } from './types/Errors';
 import axios from 'axios';
 
@@ -24,6 +25,22 @@ initializeDatabase().then(database => {
 
 
 // Endpoints about users
+
+app.get('/userExists/:username', async (req: Request, res: Response) => {
+  const { username } = req.params;
+  try {
+    await checkUser(db, username);
+    res.status(200).send({ message: 'User exists' });
+  } catch (error) {
+    if (error instanceof ExistsError) {
+      res.status(404).send({ error: error.message });
+    }
+    else {
+      res.status(500).send({ error: "Failed to fetch users" });
+    }
+  }
+});
+
 app.get('/users', async (req: Request, res: Response) => {
   try {
     const users = await getAllUsers(db);
@@ -36,12 +53,10 @@ app.get('/users', async (req: Request, res: Response) => {
 
 
 app.post('/user', async (req, res) => {
-  console.log(req)
   const { username } = req.body;
-  console.log(username)
   try {
     await addUser(db, username);
-    res.status(200).send({ message: 'User added successfully' });
+    res.status(201).send({ message: 'User added successfully' });
   } catch (error) {
     if (error instanceof ExistsError) {
       res.status(404).send({ error: error.message });
@@ -69,7 +84,7 @@ app.get('/playlists', async (req: Request, res: Response) => {
 });
 
 
-app.get('/user/:username/playlists', async (req, res) => {
+app.post('/user/:username/playlists', async (req, res) => {
   const { username } = req.params;
   const { fromUser } = req.body;
   try {

@@ -27,6 +27,15 @@ export async function initializeDatabase(): Promise<Database> {
   return db;
 }
 
+export async function checkUser(db: Database, username: string): Promise<void> {
+  const user = await db.get(`SELECT username FROM users WHERE username = ?`, [username]);
+
+  if (!user) {
+    throw new ExistsError(`User ${username} is not found`);
+  }
+
+}
+
 export async function addUser(db: Database, username: string): Promise<void> {
   const user = await db.get(`SELECT username FROM users WHERE username = ?`, [username]);
 
