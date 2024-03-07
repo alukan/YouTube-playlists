@@ -154,6 +154,7 @@ app.delete('/user/:username/playlist/:id', async (req, res) => {
   try {
     await deletePlaylist(db, id, username as string);
     res.status(200).send({ message: "Playlist deleted successfully." });
+    await axios.delete(`https://youtube.thorsteinsson.is/api/playlists/${id}`);
   } catch (error) {
     console.error("Failed to delete playlist:", error);
     if (error instanceof ExistsError) {
