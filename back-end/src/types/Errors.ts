@@ -5,9 +5,9 @@ export class UserNotFoundError extends Error {
     }
 }
 
-export class PlaylistExistsError extends Error {
+export class ExistsError extends Error {
     constructor(message: string) {
         super(message);
-        this.name = 'PlaylistExistsError';
+        this.name = 'ExistsError';
     }
 }

@@ -1,7 +1,6 @@
-// database.ts
 import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
-import { UserNotFoundError, PlaylistExistsError } from './types/Errors';
+import { UserNotFoundError, ExistsError } from './types/Errors';
 
 export async function initializeDatabase(): Promise<Database> {
   const db = await open({
@@ -20,6 +19,7 @@ export async function initializeDatabase(): Promise<Database> {
       id TEXT NOT NULL,
       private BOOLEAN NOT NULL,
       username TEXT NOT NULL,
+      playlistname TEXT NOT NULL,
       FOREIGN KEY(username) REFERENCES users(username)
     );
   `);
@@ -28,36 +28,41 @@ export async function initializeDatabase(): Promise<Database> {
 }
 
 export async function addUser(db: Database, username: string): Promise<void> {
+  const user = await db.get(`SELECT username FROM users WHERE username = ?`, [username]);
+
+  if (user) {
+    throw new ExistsError(`User ${username} already exists`);
+  }
+
   await db.run(`INSERT INTO users (username) VALUES (?)`, [username]);
 }
 
-export async function addPlaylist(db: Database, username: string, playlistId: string, isPrivate: boolean): Promise<void> {
+export async function addPlaylist(db: Database, username: string, playlistId: string, isPrivate: boolean, playlistname: string): Promise<void> {
   const user = await db.get(`SELECT username FROM users WHERE username = ?`, [username]);
 
   if (!user) {
     throw new UserNotFoundError(username);
   }
 
-  const existingPlaylist = await db.get(`SELECT id FROM playlists WHERE id = ? AND username = ?`, [playlistId, username]);
+  const existingPlaylist = await db.get(`SELECT id FROM playlists WHERE playlistname = ? AND username = ?`, [playlistname, username]);
   if (existingPlaylist) {
 
-    throw new PlaylistExistsError("Playlist already exists");
+    throw new ExistsError("Playlist already exists");
   }
-  await db.run(`INSERT INTO playlists (id, private, username) VALUES (?, ?, ?)`, [playlistId, isPrivate, username]);
+  await db.run(`INSERT INTO playlists (id, private, username, playlistname) VALUES (?, ?, ?, ?)`, [playlistId, isPrivate, username, playlistname]);
 }
 
 
-export async function getUserPlaylists(db: Database, username: string): Promise<{ id: string, private: boolean }[] | string> {
+export async function getUserPlaylists(db: Database, username: string): Promise<{ id: string, private: boolean, playlistname: string }[]> {
   const user = await db.get(`SELECT username FROM users WHERE username = ?`, [username]);
 
   if (!user) {
     throw new UserNotFoundError(username);
   }
 
-  const playlists = await db.all<{ id: string, private: boolean }[]>(`
-    SELECT id, private FROM playlists WHERE username = ?
+  const playlists = await db.all<{ id: string, private: boolean, playlistname: string }[]>(`
+    SELECT id, private, playlistname FROM playlists WHERE username = ?
   `, [username]);
-
   return playlists;
 }
 
@@ -65,7 +70,7 @@ export async function deletePlaylist(db: Database, playlistId: string, username:
   const existingPlaylist = await db.get(`SELECT id FROM playlists WHERE id = ? AND username = ?`, [playlistId, username]);
   if (!existingPlaylist) {
 
-    throw new PlaylistExistsError("Could not find playlist");
+    throw new ExistsError("Could not find playlist");
   }
   else {
     await db.run(`DELETE FROM playlists WHERE id = ? AND username = ?`, [playlistId, username]);
@@ -77,7 +82,7 @@ export async function getAllUsers(db: Database): Promise<{ username: string }[]>
 }
 
 export async function getAllPlaylists(db: Database): Promise<{ id: string, private: boolean, username: string }[]> {
-  return db.all<{ id: string, private: boolean, username: string }[]>(`SELECT id, private, username FROM playlists`);
+  return db.all<{ id: string, private: boolean, username: string }[]>(`SELECT id, private, username, playlistname FROM playlists`);
 }
 
 

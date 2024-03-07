@@ -1,8 +1,8 @@
-// server.ts
 import express, { Request, Response } from 'express';
 import { Database } from 'sqlite';
 import { initializeDatabase, addUser, addPlaylist, getUserPlaylists, deletePlaylist, getAllUsers, getAllPlaylists } from './database';
-import { UserNotFoundError, PlaylistExistsError } from './types/Errors';
+import { UserNotFoundError, ExistsError } from './types/Errors';
+import axios from 'axios';
 
 const app = express();
 app.use(express.json());
@@ -13,8 +13,8 @@ initializeDatabase().then(database => {
   db = database;
   console.log('Database initialized');
 
-  app.listen(3000, () => {
-    console.log(`Server running on http://localhost:3000`);
+  app.listen(3001, () => {
+    console.log(`Server running on http://localhost:3001`);
   });
 });
 
@@ -43,7 +43,12 @@ app.post('/user', async (req, res) => {
     await addUser(db, username);
     res.status(200).send({ message: 'User added successfully' });
   } catch (error) {
-    res.status(500).send({ error: 'Error adding user' });
+    if (error instanceof ExistsError) {
+      res.status(404).send({ error: error.message });
+    }
+    else {
+      res.status(500).send({ error: 'Error adding user' });
+    }
   }
 });
 
@@ -66,9 +71,16 @@ app.get('/playlists', async (req: Request, res: Response) => {
 
 app.get('/user/:username/playlists', async (req, res) => {
   const { username } = req.params;
+  const { fromUser } = req.body;
   try {
     const playlists = await getUserPlaylists(db, username);
-    res.status(200).json(playlists);
+    const playlistArray = [];
+    for (const playlist of playlists) {
+      if (fromUser === username || !playlist.private) {
+        playlistArray.push({ name: playlist.playlistname, id: playlist.id });
+      }
+    }
+    res.status(200).json(playlistArray);
   } catch (error) {
     console.error('Error fetching user playlists:', error);
     if (error instanceof UserNotFoundError) {
@@ -83,17 +95,21 @@ app.get('/user/:username/playlists', async (req, res) => {
 
 
 app.post('/addPlaylist', async (req, res) => {
-  const { username, playlistId, isPrivate } = req.body;
-
+  const { username, isPrivate, playlistname } = req.body;
+  const response = await axios.post('https://youtube.thorsteinsson.is/api/playlists', {
+    name: 'My playlist'
+  });
+  const playlistId = response.data.id;
+  console.log(playlistId)
   try {
-    await addPlaylist(db, username, playlistId, isPrivate);
+    await addPlaylist(db, username, playlistId, isPrivate, playlistname);
     res.send({ message: "Playlist added successfully." });
   } catch (error) {
     console.error("Failed to add playlist:", error);
     if (error instanceof UserNotFoundError) {
       res.status(404).send({ error: error.message });
     }
-    else if (error instanceof PlaylistExistsError) {
+    else if (error instanceof ExistsError) {
       res.status(404).send({ error: error.message });
     }
     else {
@@ -117,7 +133,7 @@ app.delete('/playlist/:id', async (req, res) => {
     res.status(200).send({ message: "Playlist deleted successfully." });
   } catch (error) {
     console.error("Failed to delete playlist:", error);
-    if (error instanceof PlaylistExistsError) {
+    if (error instanceof ExistsError) {
       res.status(404).send({ error: error.message });
     }
     else {
