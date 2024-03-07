@@ -155,9 +155,9 @@ export interface VideoFromSearch {
   }
 }
 
-app.delete('/playlist/:id', async (req, res) => {
-  const { id } = req.params;
-  const { username } = req.query;
+app.delete('/user/:username/playlist/:id', async (req, res) => {
+  const username = req.params.username;
+  const id = req.params.id;
 
   if (!username) {
     return res.status(400).send({ error: "Username is required" });
