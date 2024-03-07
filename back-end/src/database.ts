@@ -1,10 +1,19 @@
 import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { UserNotFoundError, ExistsError } from './types/Errors';
+import fs from 'fs';
+import path from 'path';
+
+const dbPath = path.join(__dirname, 'db', 'mydb.sqlite');
+
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
 export async function initializeDatabase(): Promise<Database> {
   const db = await open({
-    filename: './data/DB.sqlite',
+    filename: dbPath,
     driver: sqlite3.Database,
   });
 
