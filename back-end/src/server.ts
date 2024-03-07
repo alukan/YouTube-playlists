@@ -4,9 +4,16 @@ import { initializeDatabase, addUser, addPlaylist, getUserPlaylists,
    deletePlaylist, getAllUsers, getAllPlaylists, checkUser } from './database';
 import { UserNotFoundError, ExistsError } from './types/Errors';
 import axios from 'axios';
+import cors from 'cors';
 
 const app = express();
 app.use(express.json());
+
+const corsOptions = {
+  origin: 'http://localhost:3000',
+};
+
+app.use(cors(corsOptions));
 
 let db: Database;
 
@@ -28,6 +35,7 @@ initializeDatabase().then(database => {
 
 app.get('/userExists/:username', async (req: Request, res: Response) => {
   const { username } = req.params;
+  console.log(username);
   try {
     await checkUser(db, username);
     res.status(200).send({ message: 'User exists' });
