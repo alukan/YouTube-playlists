@@ -142,18 +142,6 @@ app.post('/addPlaylist', async (req, res) => {
   }
 });
 
-export interface VideoFromSearch {
-  id: {
-    videoId: string;
-  };
-  title: string;
-  description: string;
-  snippet: {
-    thumbnails: {
-      url: string
-    }
-  }
-}
 
 app.delete('/user/:username/playlist/:id', async (req, res) => {
   const username = req.params.username;
